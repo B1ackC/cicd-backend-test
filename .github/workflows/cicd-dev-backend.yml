@@ -1,0 +1,12 @@
+name: dev-backend
+
+on:
+  push:
+    branches: ["dev"]
+
+env:
+  IMAGE: ghcr.io/b1ackc/cicd-backend-test
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest

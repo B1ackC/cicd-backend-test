@@ -2,7 +2,7 @@ name: backend-dev-ci-cd
 
 on:
   push:
-    branches: [ dev ]
+    branches: [ prod ]
 
 env:
   IMAGE: ghcr.io/b1ackc/backend-test
@@ -29,7 +29,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & push (dev tag + sha)
+      - name: build & push
         uses: docker/build-push-action@v6
         with:
           push: true
