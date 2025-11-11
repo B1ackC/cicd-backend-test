@@ -69,6 +69,7 @@ jobs:
           host: ${{ secrets.DEV_HOST }}
           username: ${{ secrets.DEV_USER }}
           password: ${{ secrets.DEV_PASSWORD }}
+          envs: IMAGE, TAG, NAME, HOST_PORT, CONTAINER_PORT
           script: |
             set -euo pipefail
             
@@ -81,4 +82,3 @@ jobs:
               -p "${HOST_PORT}:${CONTAINER_PORT}" \
               --restart unless-stopped \
               "${IMAGE}:${TAG}"
-            
