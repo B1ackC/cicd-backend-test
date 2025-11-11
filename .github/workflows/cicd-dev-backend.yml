@@ -1,12 +1,84 @@
-name: dev-backend
+name: cicd-dev-backend
 
 on:
   push:
-    branches: ["dev"]
+    branches: [ dev ]
 
 env:
   IMAGE: ghcr.io/b1ackc/cicd-backend-test
 
 jobs:
-  ci:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # install java21
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+
+      # edit permission
+      - name: set permission gradlew
+        run: chmod +x ./gradlew
+
+      # test
+      - name: run tests
+        run: ./gradlew test --no-daemon
+
+      # build
+      - name: build fatJar
+        run: ./gradlew clean buildFatJar --no-daemon
+
+      # mv
+      - name: place app.jar to root
+        run: |
+          cp build/libs/app.jar ./app.jar
+
+      # login github container registry
+      - name: login ghcr
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # dockerfile build -> push
+      - name: docker image build & push
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: .
+          file: ./Dockerfile
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:dev
+
+      # ssh deploy
+      - name: ssh deploy
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          IMAGE: ghcr.io/b1ackc/cicd-backend-test
+          TAG: dev
+          NAME: backend-dev
+          HOST_PORT: "8080"
+          CONTAINER_PORT: "8080"
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          password: ${{ secrets.DEV_PASSWORD }}
+          script: |
+            set -euo pipefail
+            
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker pull "${IMAGE}:${TAG}"
+            
+            docker rm -f "${NAME}" 2>/dev/null || true
+            
+            docker run -d --name "${NAME}" \
+              -p "${HOST_PORT}:${CONTAINER_PORT}" \
+              --restart unless-stopped \
+              "${IMAGE}:${TAG}"
+            
