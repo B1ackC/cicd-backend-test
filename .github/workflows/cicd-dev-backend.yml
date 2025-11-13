@@ -55,13 +55,14 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:${{ github.sha }}
             ${{ env.IMAGE }}:dev
+            ${{ env.IMAGE }}:dev-${{ github.sha }}
 
       # ssh deploy
       - name: ssh deploy
         uses: appleboy/ssh-action@v1.2.0
         env:
           IMAGE: ghcr.io/b1ackc/cicd-backend-test
-          TAG: dev
+          TAG: ${{ github.sha }}
           NAME: backend-dev
           HOST_PORT: "8080"
           CONTAINER_PORT: "8080"
@@ -74,11 +75,13 @@ jobs:
             set -euo pipefail
             
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull "${IMAGE}:${TAG}"
+            docker pull "${IMAGE}:dev-${TAG}"
             
             docker rm -f "${NAME}" 2>/dev/null || true
             
             docker run -d --name "${NAME}" \
               -p "${HOST_PORT}:${CONTAINER_PORT}" \
               --restart unless-stopped \
-              "${IMAGE}:${TAG}"
+              "${IMAGE}:dev-${TAG}"
+            
+            docker image prune -f
