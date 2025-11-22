@@ -66,7 +66,7 @@ jobs:
       TAG: ${{ github.sha }}
       NAME: backend-dev
       HOST_PORT: "8081"
-      CONTAINER_PORT: "8081"
+      CONTAINER_PORT: "8080"
 
     steps:
       - name: login ghcr
