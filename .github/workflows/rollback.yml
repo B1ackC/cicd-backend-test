@@ -7,7 +7,6 @@ on:
       input_sha:
         description: "배포할 SHA값을 입력"
         required: true
-        default: "dev"
 
 env:
   IMAGE: ghcr.io/b1ackc/cicd-backend-test
@@ -22,37 +21,34 @@ concurrency:
 
 jobs:
   rollback:
-    runs-on: ubuntu-latest
+    runs-on: cicd-test
     permissions:
         contents: read
-        packages: write
+        packages: read
+
+    env:
+      TAG: ${{ github.event.inputs.input_sha }}
+
     steps:
-      - name: rollback deploy
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          IMAGE: ${{ env.IMAGE }}
-          TAG: ${{ inputs.input_sha }}
-          NAME: ${{ env.NAME }}
-          HOST_PORT: ${{ env.HOST_PORT }}
-          CONTAINER_PORT: ${{ env.CONTAINER_PORT }}
+      - name: login ghcr
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.DEV_HOST }}
-          username: ${{ secrets.DEV_USER }}
-          password: ${{ secrets.DEV_PASSWORD }}
-          envs: IMAGE, TAG, NAME, HOST_PORT, CONTAINER_PORT
-          script: |
-            set -euo pipefail
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: rollback
+        run: |
+          set -euo pipefail
     
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
-            TARGET_IMG="${IMAGE}:dev-${TAG}"
-            docker pull "$TARGET_IMG"
-            docker rm -f "${NAME}" 2>/dev/null || true
+          TARGET_IMG="${IMAGE}:dev-${TAG}"
+          docker pull "$TARGET_IMG"
+          docker rm -f "${NAME}" 2>/dev/null || true
     
-            docker run -d --name "${NAME}" \
-              -p "${HOST_PORT}:${CONTAINER_PORT}" \
-              --restart unless-stopped \
-              "$TARGET_IMG"
+          docker run -d --name "${NAME}" \
+            -p "${HOST_PORT}:${CONTAINER_PORT}" \
+            --restart unless-stopped \
+            "$TARGET_IMG"
     
-            docker image prune -f
+          docker image prune -f
           
