@@ -1,0 +1,56 @@
+name: notify
+
+on:
+  workflow_run:
+    workflows:
+      - cicd-dev-backend
+      - rollback
+    types:
+      - completed
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set env from workflow_run
+        run: |
+          echo "WORKFLOW_NAME=${{ github.event.workflow_run.name }}" >> $GITHUB_ENV
+          echo "STATUS=${{ github.event.workflow_run.conclusion }}" >> $GITHUB_ENV
+          echo "BRANCH=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_ENV
+          echo "SHA=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_ENV
+          echo "DETAIL_URL=${{ github.event.workflow_run.html_url }}" >> $GITHUB_ENV
+
+      - name: Send webhook msg
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+
+          if [ "$STATUS" = "success" ]; then
+            EMOJI="✅"
+            STATUS_TEXT="성공"
+          elif [ "$STATUS" = "failure" ]; then
+            EMOJI="❌"
+            STATUS_TEXT="실패"
+          else
+            EMOJI="⚠️"
+            STATUS_TEXT="$STATUS"
+          fi
+          
+          if [ "$WORKFLOW_NAME" = "cicd-dev-backend" ] || [ "$WORKFLOW_NAME" = "rollback" ]; then
+            TITLE="백엔드 롤백 워크플로"
+          else
+            TITLE="백엔드 배포 워크플로"
+          fi
+
+          CONTENT="${EMOJI} ${TITLE} ${STATUS_TEXT}\n\
+repo: ${GITHUB_REPOSITORY}\n\
+branch: ${BRANCH}\n\
+sha: ${SHA}\n\
+source workflow: ${WORKFLOW_NAME}\n\
+detail: ${DETAIL_URL}"
+
+          curl -X POST "$WEBHOOK_URL" \
+          -H "Content-Type: application/json" \
+          -d "{\"content\": \"${CONTENT}\"}"
