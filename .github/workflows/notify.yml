@@ -45,11 +45,11 @@ jobs:
           fi
 
           CONTENT="${EMOJI} ${TITLE} ${STATUS_TEXT}\n\
-repo: ${GITHUB_REPOSITORY}\n\
-branch: ${BRANCH}\n\
-sha: ${SHA}\n\
-source workflow: ${WORKFLOW_NAME}\n\
-detail: ${DETAIL_URL}"
+          repo: ${GITHUB_REPOSITORY}\n\
+          branch: ${BRANCH}\n\
+          sha: ${SHA}\n\
+          source workflow: ${WORKFLOW_NAME}\n\
+          detail: ${DETAIL_URL}"
 
           curl -X POST "$WEBHOOK_URL" \
           -H "Content-Type: application/json" \
