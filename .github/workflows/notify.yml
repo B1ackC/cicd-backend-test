@@ -10,6 +10,7 @@ on:
 
 jobs:
   notify:
+    if: ${{ github.event.workflow_run.head_branch == 'dev' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -39,9 +40,9 @@ jobs:
           fi
           
           if [ "$WORKFLOW_NAME" = "cicd-dev-backend" ] || [ "$WORKFLOW_NAME" = "rollback" ]; then
-            TITLE="백엔드 롤백 워크플로"
-          else
             TITLE="백엔드 배포 워크플로"
+          else
+            TITLE="백엔드 롤백 워크플로"
           fi
 
           CONTENT="${EMOJI} ${TITLE} ${STATUS_TEXT}\n\
