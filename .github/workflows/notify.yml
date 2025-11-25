@@ -24,7 +24,7 @@ jobs:
 
       - name: Send webhook msg
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: |
           set -euo pipefail
 
