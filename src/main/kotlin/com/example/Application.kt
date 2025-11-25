@@ -9,7 +9,7 @@ fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
         routing {
             get("/") {
-                call.respondText("롤백테스트 - CICD Hello, World!!")
+                call.respondText("롤백-test CICD Hello, World!!")
             }
         }
     }.start(wait = true)

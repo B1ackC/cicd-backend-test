@@ -8,7 +8,7 @@ env:
   IMAGE: ghcr.io/b1ackc/cicd-backend-test
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -57,31 +57,36 @@ jobs:
             ${{ env.IMAGE }}:dev
             ${{ env.IMAGE }}:dev-${{ github.sha }}
 
-      # ssh deploy
-      - name: ssh deploy
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          IMAGE: ghcr.io/b1ackc/cicd-backend-test
-          TAG: ${{ github.sha }}
-          NAME: backend-dev
-          HOST_PORT: "8080"
-          CONTAINER_PORT: "8080"
+  deploy:
+    needs: build
+    runs-on: cicd-test
+
+    env:
+      IMAGE: ghcr.io/b1ackc/cicd-backend-test
+      TAG: ${{ github.sha }}
+      NAME: backend-dev
+      HOST_PORT: "8081"
+      CONTAINER_PORT: "8080"
+
+    steps:
+      - name: login ghcr
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.DEV_HOST }}
-          username: ${{ secrets.DEV_USER }}
-          password: ${{ secrets.DEV_PASSWORD }}
-          envs: IMAGE, TAG, NAME, HOST_PORT, CONTAINER_PORT
-          script: |
-            set -euo pipefail
-            
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull "${IMAGE}:dev-${TAG}"
-            
-            docker rm -f "${NAME}" 2>/dev/null || true
-            
-            docker run -d --name "${NAME}" \
-              -p "${HOST_PORT}:${CONTAINER_PORT}" \
-              --restart unless-stopped \
-              "${IMAGE}:dev-${TAG}"
-            
-            docker image prune -f
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: pull & run container
+        run: |
+          set -euo pipefail
+
+          docker pull "${IMAGE}:dev-${TAG}"
+
+          docker rm -f "${NAME}" 2>/dev/null || true
+
+          docker run -d --name "${NAME}" \
+            -p "${HOST_PORT}:${CONTAINER_PORT}" \
+            --restart unless-stopped \
+            "${IMAGE}:dev-${TAG}"
+
+          docker image prune -f
